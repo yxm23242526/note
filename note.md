@@ -131,16 +131,31 @@ public void compareTo(A, B, C){
 | POJO | 数据库实体类型   |
 | DTO  | 前端给后端的     |
 | VO   | 后端返回给前端的 |
+| DAO  | 访问数据库的对象 |
 
 
 
-2024.4.12
+## 注解
 
-@Autowired是spring特有的注解，默认按照**类型**自动装配，如果有多个相同类型的bean，即一个service有多个impl实现类，则可以通过@Qualifier注解指定注入
+- Autowired + Resource
 
-@Resource是java带的，默认按照**名称**自动注入，如果没有指定名称，则按照类型
+> 2024.4.12
+>
+> @Autowired是spring特有的注解，默认按照**类型**自动装配，如果有多个相同类型的bean，即一个service有多个impl实现类，则可以通过@Qualifier注解指定注入
+>
+> @Resource是java带的，默认按照**名称**自动注入，如果没有指定名称，则按照类型
+
+- Repository
+
+> @Repository是属于Spring的注解。它用来标注访问层的类（Dao层），它表示一个仓库，主要用于封装对于数据库的访问。其实现方式与@Component注解相同，只是为了明确类的作用而设立。
+
+- ControllerAdvice + ExceptionHandler
+
+> 因为@ExceptionHandler是局部处理，也就是每个controller都需要加一下，所以可以单独创建一个异常处理类，加上@ControllerAdvice表示是全局处理方式
 
 ----------------
+
+## 事务
 
 Spring事务的传播性
 
@@ -222,6 +237,14 @@ TransactionAspectSupport 类中的 invokeWithinTransaction()方法中
 cookie属于客户端数据， session属于服务端并保存在服务端了， session是基于cookie的
 
 token是服务端生成但是保存在客户端的
+
+
+
+## SSO/单点登录
+
+- cookie实现（要求域相同）
+
+> cookie是客户端存储数据的工具。客户端向服务器发送请求时，会带上相同domain(域)的cookie，那只要请求过一次登录，将cookie保存在HttpServletResponse中，这样其他相同域就会带上之前的这个cookie，服务端只要控制跳转即可
 
 
 
