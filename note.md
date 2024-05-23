@@ -93,6 +93,25 @@ mysql的事务隔离级别：
 
 聚簇索引和非聚簇索引
 
+> ```mysql
+> mysql> create table user(
+>     -> id int(10) auto_increment,
+>     -> name varchar(30),
+>     -> sex tinyint(4),
+>     -> type varchar(8),
+>     -> primary key (id),
+>     -> index idx_name (name)
+>     -> )engine=innodb charset=utf8mb4;
+> ```
+>
+> 主键id是聚簇索引，其叶子节点存储的是**对应行记录**的数据
+>
+> name是普通索引，即非聚簇索引，其叶子节点存储的是**聚簇索引**的的值
+>
+> 回表：先通过普通索引找到聚簇索引，再通过聚簇索引找到行
+>
+> 索引覆盖：一次查询可以查到所有需要的列
+
 聚簇索引（InnoDB)  将数据存储和索引放到了一块，索引结构的叶子结点保留了行数据， 以及有辅助表，如按user_name排序的表，存放的是主键ID
 
 非聚簇索引（MyISAM) 数据和索引分开，两张表
@@ -114,7 +133,18 @@ public void compareTo(A, B, C){
 
 
 
-//TODO mysql表锁 行锁 索引
+持久性如何实现：redo日志+刷盘
+
+> 将修改的数据库页先记录到redo日志中，并保证在刷盘之前，这样如果意外崩溃，InnoDB首先读取redo日志还原
+
+`binlog`:实现数据恢复、主从节点复制等
+
+`binlog`和`redolog`的区别：
+
+> - 产生层次：binlog是MySQL数据库的上层服务层产生的，而redolog是InnoDB存储引擎层产生的。这意味着binlog是MySQL服务器层面的日志，而redolog是InnoDB存储引擎特有的日志。
+> - 记录内容：binlog是逻辑日志，记录的是对数据库的所有修改操作，如SQL语句的原始逻辑。而redolog是物理日志，记录的是每个数据页的修改，即“在某个数据页上做了什么修改”。
+> - 写入方式：binlog是追加写入，即写完一个日志文件再写下一个日志文件，不会覆盖使用。redolog是循环写入，日志空间的大小是固定的，会覆盖使用。
+> - 用途：binlog一般用于主从复制和数据恢复，不具备崩溃自动恢复的能力。redolog在服务器发生故障后重启MySQL时，用于恢复事务已提交但未写入数据表的数据。
 
 ------------
 
@@ -240,11 +270,7 @@ token是服务端生成但是保存在客户端的
 
 
 
-## SSO/单点登录
-
-- cookie实现（要求域相同）
-
-> cookie是客户端存储数据的工具。客户端向服务器发送请求时，会带上相同domain(域)的cookie，那只要请求过一次登录，将cookie保存在HttpServletResponse中，这样其他相同域就会带上之前的这个cookie，服务端只要控制跳转即可
+> 
 
 
 
@@ -450,7 +476,7 @@ RocketMQ采用的是发布订阅模式
 
 2024.4.25
 
-消息过程幂等
+//TODO 消息过程幂等
 
 RocketMQ无法避免消息重复，需要在消费端去重
 
@@ -510,6 +536,32 @@ producer:
 docker的最小运行环境没有vi命令等，所以要挂载数据卷当真实的盘上，能双向链接， `var/lib/docker/volumes`
 
 也就是`docker run` 中的 `-v dest:src`  `dest`是挂载的位置，`src`是容器内的位置
+
+
+
+
+
+# OAuth2
+
+一种安全协议
+
+调试 OAuth 2.0 接口大致就是上面的步骤，总共分三步：
+
+> 第一步，在登录提供方（如微信或谷歌等）的页面上操作授权，获得授权 code；
+> 第二步，在客户端里用授权页返回的 code 申请 access_token；
+> 第三步，在客户端里用 access_token 请求更多信息。
+
+- RBAC模型
+
+
+
+# SSO
+
+- cookie实现（要求域相同）
+
+> cookie是客户端存储数据的工具。客户端向服务器发送请求时，会带上相同domain(域)的cookie，那只要请求过一次登录，将cookie保存在HttpServletResponse中，这样其他相同域就会带上之前的这个cookie，服务端只要控制跳转即可
+
+
 
 
 
