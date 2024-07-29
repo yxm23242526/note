@@ -24,7 +24,7 @@
 
 # 服务器相关
 
-公网IP：`47.102.128.67`
+公网IP：47.102.128.67
 
 管理员模式 `su`
 
@@ -38,9 +38,27 @@
 
 `redis-cli -h 47.102.128.67 -p 6379 -a 123456`
 
-
-
 # Java
+
+## 线程池相关
+
+参考文章：
+
+> [【多线程系列-01】深入理解进程、线程和CPU之间的关系_cpu和线程的关系-CSDN博客](https://blog.csdn.net/zhenghuishengq/article/details/131714191)
+
+---
+
+CPU和线程的关系:
+
+​	每个进程都要使用共享的cpu，目前主流的CPU都是多核的，线程是CPU调度的最小单位，也就是说，一个核心CPU只能运行一个线程，**但Intel引入这个超线程技术之后，产生了逻辑处理器的概念，使得一个cpu中，可以执行两个线程，从而让cpu数和线程数达到 1:2 的关系** 
+
+---
+
+上下文切换：
+
+​	指的是**从一个进程切或线程切换到另一个进程或者线程的切换**
+
+---
 
 IO密集型和CPU密集型的线程池的线程数量设置：
 
@@ -49,7 +67,19 @@ IO密集型和CPU密集型的线程池的线程数量设置：
 
 `ThreadPoolExecutor`有7个参数
 
-
+> `corePoolSize` 核心线程池大小
+>
+> `maximumPoolSize` 线程池能创建线程的最大个数
+>
+> `keepAliveTime` 空闲线程存活时间
+>
+> `unit` 时间单位，为`keepAliveTime`指定时间单位
+>
+> `workQueue` 工作队列
+>
+> `threadFactory` 创建线程的工厂类
+>
+> `handler` 饱和策略
 
 
 
@@ -69,7 +99,11 @@ Thread thread = new Thread(() -> System.out.println("Hello Man!"));
 
 又允许lamda表达式直接作为这个接口的实现类
 
+## JVM
 
+参考文章
+
+> [JVM的内存区域划分_jvm内存区域划分-CSDN博客](https://blog.csdn.net/m0_67995737/article/details/130064952)
 
 # MySQL
 
@@ -148,6 +182,15 @@ public void compareTo(A, B, C){
 
 ------------
 
+## 关键字
+
+- `COUNT(1)`: 此查询返回的是结果集中的行数，不关心具体的列内容，因此使用常数1。
+  在很多数据库系统中，这种方式被优化为与 `SELECT COUNT(*)` 相同的性能水平，因为数据库引擎通常忽略括号内的内容。
+- `COUNT(*)`：统计整个表的行数，不考虑是否有NULL值。
+  通常优于 `COUNT(id)`，因为它不需要关心具体的列，且现代数据库引擎会对其进行特殊优化。
+- `COUNT(列)` ：统计指定列非空值的数量。需要考虑是否有NULL值
+  此种方式取决于列是否有索引。如果 列有索引，数据库引擎可能会利用索引进行快速计数。如果没有索引，或者有大量NULL值，性能可能较差，因为需要扫描整个表。
+
 # Spring
 
 
@@ -207,7 +250,7 @@ Spring事务失效的场景：
 
 2. 用final、static修饰，无法生成代理
 
-3. 这种方式调用updateStauts是用this调用的，解法方法可以用 ` AopContext.currentProxy();`或者注入自己 `UserService`
+3. 这种方式调用updateStauts是用this调用的，解决方法可以用 ` AopContext.currentProxy();`或者注入自己 `UserService`
 
    ```java
    public class UserService {
@@ -255,22 +298,6 @@ TransactionAspectSupport 类中的 invokeWithinTransaction()方法中
 动态代理的原理是创建代理对象后使用反射机制来调用原方法，以此可以实现AOP等
 事务@Transactional注解本质是用动态代理实现的，如果直接在A方法中调用B，用的则是this，所以会创建不出代理导致失效
 ```
-
-
-
-2024.4.7
-
-[HTTP协议](https://so.csdn.net/so/search?q=HTTP协议&spm=1001.2101.3001.7020)是无状态的（stateless）是指服务器在处理客户端的请求时，不会将请求和先前状态相关联。简单来说，每一个HTTP请求都是独立的，不保存与先前请求相关的信息。
-
-为了解决这个问题，所以加上了cookie和session
-
-cookie属于客户端数据， session属于服务端并保存在服务端了， session是基于cookie的
-
-token是服务端生成但是保存在客户端的
-
-
-
-> 
 
 
 
@@ -537,7 +564,71 @@ docker的最小运行环境没有vi命令等，所以要挂载数据卷当真实
 
 也就是`docker run` 中的 `-v dest:src`  `dest`是挂载的位置，`src`是容器内的位置
 
+> `/mysql`是卷  `./mysql`是宿主机物理盘
 
+创建`mysql`
+
+```
+docker run -d \
+  --name cloud \
+  -p 3306:3306 \
+  -e TZ=Asia/Shanghai \
+  -e MYSQL_ROOT_PASSWORD=123456 \
+  -v /root/mysql/data:/var/lib/mysql \
+  -v /root/mysql/conf:/etc/mysql/conf.d \
+  -v /root/mysql/init:/docker-entrypoint-initdb.d \
+  mysql
+```
+
+创建`minio`
+
+```
+docker run \
+-p 19000:9000 \
+-p 9090:9090 \
+--net=host \
+--name wmminio \
+-d --restart=always \
+-e "MINIO_ACCESS_KEY=yxm" \
+-e "MINIO_SECRET_KEY=yxm980918" \
+-v /root/minio/data:/data \
+-v /root/minio/config:/root/.minio \
+ minio/minio server \
+/data --console-address ":9090" -address ":19000"
+```
+
+创建`redis`
+
+```
+docker run -itd --name wmredis -p 6379:6379 redis
+```
+
+创建`naocs`
+
+```
+docker run -d \
+--name nacos \
+-p 8848:8848 \
+-p 9848:9848 \
+-p 9849:9849 \
+--privileged=true \
+--restart=always \
+-e JVM_XMS=128m \
+-e JVM_XMX=128m \
+-e MODE=standalone \
+-e PREFER_HOST_MODE=hostname \
+-e SPRING_DATASOURCE_PLATFORM=mysql \
+-e MYSQL_SERVICE_HOST=47.102.128.67 \
+-e MYSQL_SERVICE_PORT=3306 \
+-e MYSQL_SERVICE_DB_NAME=nacos \
+-e MYSQL_SERVICE_USER=root \
+-e MYSQL_SERVICE_PASSWORD=123456 \
+-v /root/nacos/logs:/home/nacos/logs \
+-v /root/nacos/init.d/custom.properties:/etc/nacos/init.d/custom.properties \
+-v /root/nacos/data:/home/nacos/data \
+nacos/nacos-server
+
+```
 
 
 
@@ -563,9 +654,34 @@ docker的最小运行环境没有vi命令等，所以要挂载数据卷当真实
 
 
 
+# 微信开发
 
+ `appid:` wx7c01f92a8aa18010
 
+`appsecret:` 11a6bf42f8ba5ff581ff38f92e3d4e14
 
+# 网络
 
+文章参考
 
+> [一文彻底搞清session、cookie、token的区别 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/631349844)
+>
+> [三次握手和四次挥手简单理解-腾讯云开发者社区-腾讯云 (tencent.com)](https://cloud.tencent.com/developer/article/1670465)
+
+---
+
+2024.4.7
+
+[HTTP协议](https://so.csdn.net/so/search?q=HTTP协议&spm=1001.2101.3001.7020)是无状态的（stateless）是指服务器在处理客户端的请求时，不会将请求和先前状态相关联。简单来说，每一个HTTP请求都是独立的，不保存与先前请求相关的信息。如何解决判断两次请求是同一个人，就加上了cookie和session
+
+| 方法    | 特点                                                | 作用                                                         |
+| ------- | --------------------------------------------------- | ------------------------------------------------------------ |
+| cookie  | 客户端数据，存储小                                  | 通过请求传递，技术比较老，但容易实现，不够安全，跨域不好解决 |
+| session | 保存在服务端，基于cookie，将sessionid保存在cookie中 | 耗费服务器资源，因为相当于保存了一个完整的用户信息，但是是内存操作，时间快，空间换时间 |
+| token   | 体积小，C/S端都可以保存                             | token是服务端生成但是保存在客户端的，安全，只有用户ID，跨域处理方便。时间换空间，每次都要去数据库查，但是现在有了redis后，可以缓存使用 |
+| jwt     | 解决token依赖数据库或者redis的问题                  | `Token`需要查库验证`Token` 是否有效 而`JWT`不用查库，直接在服务端进行校验。因为用户的信息及加密信息在第二部分`Payload`和第三部分签证中已经生成，只要在服务端进行校验就行，并且校验也是`JWT`自己实现的。但是payload中的数据是可逆的，不建议放敏感信息 |
+
+Q：为什么建立连接是三次握手，而关闭连接却是四次挥手呢？
+
+这是因为**服务端在LISTEN状态下，收到建立连接请求的SYN报文后，把ACK和SYN放在一个报文里发送给客户端。而关闭连接是，当收到对方的FIN报文是，仅仅表示对方不再发送数据了，但是还能接收数据**，已方也未必全部数据都发送给对方了，所以已方可以立即close，也可以发送一些数据给对方后，再发送FIN报文给对方来表示同意现在关闭连接，因此，已方ACK和FIN一般都会分开发送。
 
