@@ -24,7 +24,7 @@
 
 # 服务器相关
 
-公网IP：47.102.128.67
+公网`IP`：47.102.128.67   1.117.63.43
 
 管理员模式 `su`
 
@@ -35,8 +35,6 @@
 - `ps -ef | grep tomcat`：查看指定进程
 
 `cd /usr/local/bin`
-
-`redis-cli -h 47.102.128.67 -p 6379 -a 123456`
 
 # Java
 
@@ -105,25 +103,52 @@ Thread thread = new Thread(() -> System.out.println("Hello Man!"));
 
 > [JVM的内存区域划分_jvm内存区域划分-CSDN博客](https://blog.csdn.net/m0_67995737/article/details/130064952)
 
-# MySQL
+## 反射
+
+首先区分编译时和运行时，编译时：`.java->.class`的过程，运行时：`jvm`运行的过程
+
+定义：`JAVA`反射机制是在运行状态中，对于任意一个类，都能够知道这个类的所有属性和方法；对于任意一个对象，都能够调用它的任意一个方法和属性；这种动态获取的信息以及动态调用对象的方法的功能称为`java`语言的反射机制。
+
+# 数据库
+
+参考文章：
+
+> [数据库隔离级别详解[通俗易懂\]-腾讯云开发者社区-腾讯云 (tencent.com)](https://cloud.tencent.com/developer/article/2091272)
+>
+> [索引失效的7个原因_索引失效的七种情况-CSDN博客](https://blog.csdn.net/weixin_43155866/article/details/129969304)
+>
+> [MySQL架构详解-腾讯云开发者社区-腾讯云 (tencent.com)](https://cloud.tencent.com/developer/article/2221380)
+>
+> [图解｜索引覆盖、索引下推以及如何避免索引失效_索引覆盖和索引下推-CSDN博客](https://blog.csdn.net/weixin_45433031/article/details/127284395)
 
 2024.4.18
 
-mysql的事务隔离级别：
+## 事务
 
-| 传播性                                     | 描述                                                         |
-| ------------------------------------------ | ------------------------------------------------------------ |
-| serializable                               | 同一时间只有一个事务在跑，性能差，安全性高                   |
-| repeatable-read（可重复度，默认）          | 并发执行Sql时，其他sql的修改对当前不可见，只有当前自己提交了才能看见 |
-|                                            | 幻读：Asql查询 X， 随即Bsql插入X，Asql依然查不到的情况下插入X，会报错 |
-| read commited（不可重复读、幻读）          | 可以看到其他事务的修改，一个相同的sql也就可能看到多个结果    |
-| read uncommited （不可重复读、幻读、脏读） | 可以读到其他事务没有提交的数据                               |
+mysql的事务隔离级别（由高到低）：
+
+| 传播性                       | 描述                                                         | 脏读   | 不可重复读 | 幻读   |
+| ---------------------------- | ------------------------------------------------------------ | ------ | ---------- | ------ |
+| serializable                 | 同一时间只有一个事务在跑，性能差，安全性高                   | 不可能 | 不可能     | 不可能 |
+| repeatable-read（Mysql默认） | 并发执行Sql时，其他sql的修改对当前不可见，只有当前自己提交了才能看见 | 不可能 | 不可能     | 可能   |
+| read commited                | 可以看到其他事务的修改，一个相同的sql也就可能看到多个结果    | 不可能 | 可能       | 可能   |
+| read uncommited              | 可以读到其他事务没有提交的数据                               | 可能   | 可能       | 可能   |
 
 随着隔离级别的升高，性能会降低
 
+简单来说：
 
+脏读即为session A读取到了session B中未提交的数据
 
+不可重复读即为session A读取到 了session B提交的数据，即前后session A读取的数据不一致
 
+幻读即为session A读取到了session B insert的数据。
+
+幻读与不可重复读的区别为幻读为读到新插入的数据（insert），而不可重复读主要是更改与删除（update、delete）。
+
+---
+
+## 索引
 
 聚簇索引和非聚簇索引
 
@@ -167,6 +192,46 @@ public void compareTo(A, B, C){
 
 
 
+Q：索引失效的一些场景（也是优化索引）
+
+> 1. 未遵循最左匹配原则
+> 2. 使用函数 （ > , < 等）
+> 3. 计算操作
+> 4. like %在左边 （%在右边不会影响）
+> 5. 使用or
+> 6. in 使用不当   [ in (3) 和 in (3, 4, 5)的区别]
+> 7. order by
+> 8. 少判断null，会导致全表查询
+
+---
+
+回表：
+
+​	通过二级索引的主键`id`找到聚簇索引的操作
+
+回表的代价：
+
+​	由于二级索引的主键`id`是无序的，所以在聚簇索引中定位是可能是随机`io`，会导致磁盘加载一个数据页(`16kb`)到内存
+
+回表的优化：
+
+1. 能不回表就不回表
+2. 必须回表就减少次数
+
+因此引申出**索引覆盖**和**索引下推**
+
+索引覆盖：比如`select name age from ···` ，就把`name age`作为联合索引，恰好覆盖的情况
+
+索引下推：将服务层的操作下推至引擎层
+
+- 叫做**索引条件下推**（Index Condition Pushdown，**ICP**），默认开启
+
+---
+
+
+
+## 持久化
+
 持久性如何实现：redo日志+刷盘
 
 > 将修改的数据库页先记录到redo日志中，并保证在刷盘之前，这样如果意外崩溃，InnoDB首先读取redo日志还原
@@ -190,6 +255,39 @@ public void compareTo(A, B, C){
   通常优于 `COUNT(id)`，因为它不需要关心具体的列，且现代数据库引擎会对其进行特殊优化。
 - `COUNT(列)` ：统计指定列非空值的数量。需要考虑是否有NULL值
   此种方式取决于列是否有索引。如果 列有索引，数据库引擎可能会利用索引进行快速计数。如果没有索引，或者有大量NULL值，性能可能较差，因为需要扫描整个表。
+
+## 优化
+
+1. 索引优化
+
+2. 定位`sql`慢的语句
+
+   - 通过`sql`定位是查询还是更新为主
+
+   - 用 `explain + sql `语句查询`sql`执行过程
+   - `show profile` 分析`SQL`
+   - 慢查询日志(常用的工具)
+
+3. 优化`sql`
+
+   - `select`时尽量选择带索引的，并且同时升序降序
+   - `group by`分组时，`Mysql`会默认分组，但不一定是我们想要的，可以用`order by null`禁用
+   - 优化`insert`，在服务层批量插入
+   - 避免索引失效
+   - `where`字段上添加索引
+
+4. 数据库设计
+
+   - 一、二、三范式设计
+   - 也可以反范式，因为有些常用字段冗余设计后，不用多表查询
+   - 增加派生列，其他几列计算后的结果
+   - 分割表：垂直拆分（将大字段拆到另一张表）、水平拆分（表结构一致，记录散列在多张表）
+   - 字段设计（尽可能`not null`，字段长度固定的表查询更快，把大表拆成小表）
+
+5. 其他
+
+   - 小表驱动大表，原理是减少数据库的连接次数，索引生效的是被驱动表的索引
+   - `InnerJoin`会自己选择较优的方式
 
 # Spring
 
@@ -225,6 +323,12 @@ public void compareTo(A, B, C){
 - ControllerAdvice + ExceptionHandler
 
 > 因为@ExceptionHandler是局部处理，也就是每个controller都需要加一下，所以可以单独创建一个异常处理类，加上@ControllerAdvice表示是全局处理方式
+
+- PostConstruct
+
+> 简单理解为，由于对象被依赖注入，没有初始化函数，使用此方式进行初始化一些东西
+>
+> @value注解是Bean的构造函数之后，但是在初始化方法（如@Poststruct）之前
 
 ----------------
 
@@ -299,7 +403,19 @@ TransactionAspectSupport 类中的 invokeWithinTransaction()方法中
 事务@Transactional注解本质是用动态代理实现的，如果直接在A方法中调用B，用的则是this，所以会创建不出代理导致失效
 ```
 
+## 其他
 
+加载顺序总结：
+
+- **静态变量和静态初始化块**：首先被加载和初始化，因为它们属于类级别的初始化，与Spring容器的Bean生命周期无关。
+
+- **Bean的实例化**：接着，Spring容器会创建Bean的实例。在这一步，会调用Bean的构造函数。
+
+- **依赖注入**：在Bean实例创建之后，Spring会进行依赖注入，包括使用`@Value`注解的字段。
+
+- **Bean的初始化**：最后，如果Bean实现了`InitializingBean`接口，或者标注了`@PostConstruct`注解，Spring会调用相应的初始化方法。
+
+  所以有个现象就是static变量用不到@Autowired的对象值，会空，可以利用postConstruct解决，或者在setter上注入值
 
 ---------
 
@@ -630,6 +746,36 @@ nacos/nacos-server
 
 ```
 
+`seata`
+
+```
+docker run --name seata \
+-p 8099:8099 \
+-p 7099:7099 \
+-e SEATA_IP=1.117.63.43 \
+-v ./seata:/seata-server/resources \
+--privileged=true \
+--network hm-net \
+-d \
+seataio/seata-server:1.5.2
+```
+
+`rabbitmq`
+
+```
+docker run \
+ -e RABBITMQ_DEFAULT_USER=admin \
+ -e RABBITMQ_DEFAULT_PASS=123456 \
+ -v mq-plugins:/plugins \
+ --name mq \
+ --hostname mq \
+ -p 15672:15672 \
+ -p 5672:5672 \
+ --network hm-net\
+ -d \
+ rabbitmq:3.8-management
+```
+
 
 
 # OAuth2
@@ -684,4 +830,3 @@ nacos/nacos-server
 Q：为什么建立连接是三次握手，而关闭连接却是四次挥手呢？
 
 这是因为**服务端在LISTEN状态下，收到建立连接请求的SYN报文后，把ACK和SYN放在一个报文里发送给客户端。而关闭连接是，当收到对方的FIN报文是，仅仅表示对方不再发送数据了，但是还能接收数据**，已方也未必全部数据都发送给对方了，所以已方可以立即close，也可以发送一些数据给对方后，再发送FIN报文给对方来表示同意现在关闭连接，因此，已方ACK和FIN一般都会分开发送。
-
