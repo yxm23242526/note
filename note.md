@@ -36,6 +36,15 @@
 
 `cd /usr/local/bin`
 
+```Bash
+# 进入任意节点容器
+docker exec -it r1 bash
+# 然后，执行命令
+redis-cli --cluster create --cluster-replicas 1 \
+47.102.128.67:7001 47.102.128.67:7002 47.102.128.67:7003 \
+47.102.128.67:7004 47.102.128.67:7005 47.102.128.67:7006
+```
+
 # Java
 
 ## 线程池相关
@@ -573,6 +582,8 @@ redis会把每一个master节点映射到0~16383共16384个插槽上，利用CRC
 
 所以本质上和节点无关，因为节点会宕机更换等
 
+规则上是有判断{}来hash
+
 --------
 
 2024.4.8
@@ -602,6 +613,24 @@ RDB（redis database backup file) redis数据快照，就是把内存中数据�
 AOF (Append Only File)追加文件。 redis处理的每一个写命令都会记录在AOF文件
 
 -------
+
+主从同步：
+
+分**全量**同步和**增量**同步
+
+全量：将完成内存数据生成RDB发给slave
+
+增量：记录repl_backlog，slave发送自己的offset到master，环形传递
+
+主从同步的优化：
+
+1.在master配置repl-diskless-sync yes启用无磁盘复制，即不用RDB，直接网络传输
+
+2.redis单节点的内存不要太大，减少RDB的过多磁盘IO
+
+3.适当提高repl_baklog的大小，发现slave宕机时尽快故障恢复，尽可能避免全量同步
+
+4.限制slave节点数量，如果slave实在太多，采用主-从-从链式结构
 
 # RocketMQ
 
